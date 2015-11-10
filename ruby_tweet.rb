@@ -1,5 +1,7 @@
 require 'jumpstart_auth'
 require 'bitly'
+require 'klout'
+
 
 class MicroBlogger
   attr_reader :client
@@ -8,9 +10,11 @@ class MicroBlogger
   def initialize
     @client = JumpstartAuth.twitter
 
-    #print "initializing bitly\n"
     Bitly.use_api_version_3
     @bitly = Bitly.new('hungryacademy', 'R_430e9f62250186d2612cca76eee2dbc6')
+
+    Klout.api_key = 'xu9ztgnacmjx3bu82warbr3h'
+
 
   end
 
@@ -66,6 +70,21 @@ class MicroBlogger
   end
 
 
+  def klout_score
+    friends = friends_list.sort_by { |friend| friend.screen_name.downcase  }
+    print "\nList of friends:\n"
+    friends.each { |friend| print "#{friend.screen_name}\n" }
+
+    print "\nRetrieving Klout scores of all friends...\n\n"
+    friends.each do |friend|
+      identity = Klout::Identity.find_by_screen_name(friend.screen_name)
+      user = Klout::User.new(identity.id)
+      print "#{friend.name} (#{friend.screen_name}): #{user.score.score}\n\n" 
+    end
+  end
+
+
+
 
   def run
     puts "Twitter interface via API."
@@ -77,7 +96,7 @@ class MicroBlogger
       command = parts[0]
       case command
        when 'q' then puts "Goodbye!"
-       when 'h' then puts "t- tweet, q - quit, dm- direct message, fl - follower list, friends - list friends, spam - message to all followers, lt - everyone's last tweet, turl - tweet with shortened url, s - shorten url using bitly, h - help"
+       when 'h' then puts "t- tweet, q - quit, dm- direct message, fl - follower list, friends - list friends, spam - message to all followers, lt - everyone's last tweet, turl - tweet with shortened url, s - shorten url using bitly, ks - klout score of all friends, h - help"
        when 't' then tweet(parts[1..-1].join(" "))
        when 'dm' then
 	screen_names = @client.followers.collect { |follower| @client.user(follower).screen_name }
@@ -98,7 +117,8 @@ class MicroBlogger
        when 'turl'
           puts "Shortening this URL: #{parts[-1]}\n"
 	  tweet(parts[1..-2].join(" ") + " " + shorten(parts[-1]) )
-      else
+       when 'ks' then klout_score
+       else
          puts "Unknown command #{command}. Use 'h' for help"
       end
     end
