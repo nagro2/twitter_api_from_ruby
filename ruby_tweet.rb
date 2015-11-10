@@ -1,10 +1,17 @@
 require 'jumpstart_auth'
+require 'bitly'
 
 class MicroBlogger
   attr_reader :client
+  attr_reader :bitly
 
   def initialize
     @client = JumpstartAuth.twitter
+
+    #print "initializing bitly\n"
+    Bitly.use_api_version_3
+    @bitly = Bitly.new('hungryacademy', 'R_430e9f62250186d2612cca76eee2dbc6')
+
   end
 
   def tweet(message)
@@ -54,6 +61,10 @@ class MicroBlogger
     end
   end
 
+  def shorten(original_url)
+    @bitly.shorten(original_url).short_url
+  end
+
 
 
   def run
@@ -66,7 +77,7 @@ class MicroBlogger
       command = parts[0]
       case command
        when 'q' then puts "Goodbye!"
-       when 'h' then puts "t- tweet, q - quit, dm- direct message, fl - follower list, friends - list friends, spam - message to all followers, lt - everyone's last tweet, h - help"
+       when 'h' then puts "t- tweet, q - quit, dm- direct message, fl - follower list, friends - list friends, spam - message to all followers, lt - everyone's last tweet, turl - tweet with shortened url, s - shorten url using bitly, h - help"
        when 't' then tweet(parts[1..-1].join(" "))
        when 'dm' then
 	screen_names = @client.followers.collect { |follower| @client.user(follower).screen_name }
@@ -81,6 +92,12 @@ class MicroBlogger
 	  spam_my_followers(followers_list, parts[1..-1].join(" "))
        when 'lt' then everyones_last_tweet
        when 'friends' then list_friends
+       when 's' then
+          puts "Shortening this URL: #{parts[-1]}\n"
+	  print "#{shorten(parts[-1])}\n"
+       when 'turl'
+          puts "Shortening this URL: #{parts[-1]}\n"
+	  tweet(parts[1..-2].join(" ") + " " + shorten(parts[-1]) )
       else
          puts "Unknown command #{command}. Use 'h' for help"
       end
